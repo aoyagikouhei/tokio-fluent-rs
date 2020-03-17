@@ -21,12 +21,12 @@ impl<A: ToSocketAddrs> FluentClient<A> {
     }
 
     pub async fn message<S: Serialize>(&self, tag: &str, record: &S) -> Result<(), FluentError>  {
+        let tag = serde_json::to_string(tag)?;
         let time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         let record = serde_json::to_string(record)?;
         let body = format!("[{},{},{}]", tag, time, record);
 
         let mut stream = TcpStream::connect(&self.addr).await?;
-        stream.write_all(&body.into_bytes()).await?;
-        Ok(())
+        stream.write_all(&body.into_bytes()).await.map_err(|err| err.into())
     }
 }
